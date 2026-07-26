@@ -1,0 +1,107 @@
+# ===================== 系统通用文件 =====================
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+# Windows 临时文件
+desktop.ini
+*.lnk
+
+# ===================== IDEA / JetBrains 全家桶 =====================
+.idea/
+# IDEA 配置缓存、工作区、本地个人设置
+.idea/workspace.xml
+.idea/tasks/
+.idea/shelf/
+.idea/localHistory/
+.idea/caches/
+.idea/indexes/
+.idea/javadoc/
+.idea/compile-server/
+# 个人密钥、运行配置、本地环境变量（禁止提交）
+.idea/runConfigurations/
+.idea/env/
+# 插件缓存
+.idea/plugins/
+# 模块编译输出
+out/
+build/
+*.iml
+*.iws
+*.ipr
+
+# ===================== AI 工具专属目录（你指定全部覆盖） =====================
+# WorkBuddy 缓存/工作目录
+.workbuddy/
+workbuddy/
+# Claude 客户端缓存、会话记录、Agent配置、本地上下文
+.claude/
+claude/
+.claude.agent/
+claude.agent/
+# Codex CLI 缓存、会话、配置、历史记录
+.codex/
+codex/
+# 通用AI助手缓存目录
+.ai/
+.agent/
+
+# ===================== 日志文件 log 全量忽略 =====================
+# 所有日志后缀
+*.log
+*.log.*
+logs/
+log/
+# 滚动日志、错误日志、运行日志
+*.out
+*.err
+# 程序崩溃堆栈、core转储文件
+core
+core.*
+
+# ===================== Go 项目专属（适配你Go后端开发） =====================
+# Go编译产物
+/bin/
+/pkg/
+# 测试缓存
+.testcache/
+# 二进制可执行文件
+*.exe
+*.dll
+*.so
+*.dylib
+# go mod 缓存（本地下载缓存无需提交）
+go.sum  # 可选保留，多人协作建议注释掉保留
+vendor/ # 依赖目录，go mod 模式一般忽略
+
+# ===================== 环境配置、密钥、敏感文件 =====================
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
+# 本地配置文件
+config.local.yaml
+config.local.json
+
+# ===================== 临时文件、缓存、挂载目录 =====================
+tmp/
+temp/
+.cache/
+cache/
+*.tmp
+*.bak
+*.swp
+*.swo
+# vim/nano 编辑缓存
+*~
+
+# ===================== 数据库、缓存持久化数据 =====================
+redis-data/
+sqlite*.db
+*.sqlite
+dump/
