@@ -63,6 +63,9 @@
 
 ### Go Backend（业务控制层）
 
+> 2026-09 更新：Go 层按媒体面/控制面拆分为两个服务——**media-gateway**（媒体接入与中继）与
+> **backend**（业务编排）。拆分决策与详细设计见 [媒体网关 SPEC](gateway/GATEWAY_SPEC.md)。
+
 **职责**：业务编排，不包含 AI 推理
 
 ```
@@ -73,6 +76,25 @@ backend/
 ├── session/      # Redis Session 管理
 └── repository/   # MySQL 数据访问
 ```
+
+### 媒体网关层（media-gateway，M1 已落地）
+
+**职责**：音视频流接入与中继，**不解码、不转码、不懂面试语义、不落盘**
+
+```
+media-gateway/
+├── proto/          # media.proto（source of truth，protoc 生成）
+├── internal/
+│   ├── relay/      # 会话中继核心：有界缓冲、水位丢帧、seq（纯逻辑）
+│   ├── server/     # 浏览器 WS 接入：读写泵、心跳、限额
+│   ├── rpc/        # MediaRelay gRPC：上行音频泵 + 下行 TTS 路由
+│   ├── registry/   # 房间 → 会话路由（M1 进程内，M2 Redis）
+│   └── metrics/    # Prometheus 指标
+└── cmd/            # gateway 入口 / echoworker 回声 / wssmoke 验证
+```
+
+**Go（网关）不负责**：ASR/TTS、面试状态机、业务语义、持久化
+**Go（网关）负责**：大规模长连接承载（数千路/节点）、实时帧中继（水位丢帧、读泵永不阻塞）、传输协议隔离（WS → RTMP 只动本层）
 
 核心结构：
 

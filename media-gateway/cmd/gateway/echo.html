@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>HireOS 媒体网关 · 回声测试</title>
+<style>
+  body { font-family: -apple-system, sans-serif; max-width: 640px; margin: 40px auto; padding: 0 16px; }
+  button { font-size: 16px; padding: 8px 24px; margin-right: 12px; }
+  #status { margin: 16px 0; padding: 12px; background: #f5f5f5; border-radius: 8px; white-space: pre-line; }
+  .on { background: #e6ffe6; }
+  input { width: 200px; padding: 6px; }
+</style>
+</head>
+<body>
+<h2>🎧 媒体网关回声测试（M1）</h2>
+<p>
+  链路：麦克风 → AudioWorklet 采集 40ms PCM 帧 → WebSocket → 网关 → gRPC → 回声 worker
+  → 网关 → WebSocket → 浏览器播放。你听到的回声 = 你说的话。
+</p>
+<p>房间 ID：<input id="room" value="demo-1"></p>
+<button id="start">开始回声</button>
+<button id="stop" disabled>停止</button>
+<div id="status">未连接</div>
+
+<script>
+// ---- AudioWorklet 处理器：Float32 → Int16 PCM，按 640 采样（40ms@16kHz）聚合 ----
+const workletCode = `
+class CaptureProcessor extends AudioWorkletProcessor {
+  constructor() { super(); this.buf = new Int16Array(640); this.fill = 0; }
+  process(inputs) {
+    const ch = inputs[0][0];
+    if (!ch) return true;
+    for (let i = 0; i < ch.length; i++) {
+      const s = Math.max(-1, Math.min(1, ch[i]));
+      this.buf[this.fill++] = s < 0 ? s * 0x8000 : s * 0x7fff;
+      if (this.fill === 640) { this.port.postMessage(this.buf.slice(0)); this.fill = 0; }
+    }
+    return true;
+  }
+}
+registerProcessor('capture-processor', CaptureProcessor);
+`;
+
+const $ = id => document.getElementById(id);
+let ws, audioCtx, workletNode, playing = false;
+let playQueue = [], playAt = 0, framesIn = 0, framesOut = 0;
+
+function status(text, on) {
+  $('status').textContent = text;
+  $('status').className = on ? 'on' : '';
+}
+
+async function start() {
+  const roomId = $('room').value.trim() || 'demo-1';
+  const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+  ws = new WebSocket(`${proto}://${location.host}/ws?room_id=${encodeURIComponent(roomId)}`);
+  ws.binaryType = 'arraybuffer';
+
+  ws.onopen = async () => {
+    audioCtx = new AudioContext({ sampleRate: 16000 });
+    const url = URL.createObjectURL(new Blob([workletCode], { type: 'application/javascript' }));
+    await audioCtx.audioWorklet.addModule(url);
+
+    const stream = await navigator.mediaDevices.getUserMedia({
+      audio: { sampleRate: 16000, channelCount: 1, echoCancellation: true, noiseSuppression: true }
+    });
+    const source = audioCtx.createMediaStreamSource(stream);
+    workletNode = new AudioWorkletNode(audioCtx, 'capture-processor');
+    workletNode.port.onmessage = e => {
+      if (ws.readyState === 1) { framesIn++; ws.send(e.data.buffer); }
+    };
+    source.connect(workletNode);
+    // worklet 不再连 destination，避免本地监听啸叫；只走网关回声链路
+
+    playing = true;
+    playAt = audioCtx.currentTime + 0.1;
+    $('start').disabled = true; $('stop').disabled = false;
+    status(`已连接（room=${roomId}）\n上行帧: ${framesIn}  下行帧: ${framesOut}`, true);
+    setInterval(() => status(`已连接（room=${roomId}）\n上行帧: ${framesIn}  下行帧: ${framesOut}`, true), 500);
+  };
+
+  ws.onmessage = e => {
+    if (e.data instanceof ArrayBuffer) {
+      // Int16 PCM → Float32 → 排队播放（网关回声：你说的话）
+      const int16 = new Int16Array(e.data);
+      const f32 = new Float32Array(int16.length);
+      for (let i = 0; i < int16.length; i++) f32[i] = int16[i] / 32768;
+      playQueue.push(f32);
+      framesOut++;
+      flushPlayback();
+    } else {
+      status('服务端消息: ' + e.data);
+    }
+  };
+
+  ws.onclose = e => {
+    status(`连接关闭: ${e.reason || e.code}`);
+    $('start').disabled = false; $('stop').disabled = true;
+    stopAll();
+  };
+}
+
+// 按 pts 调度播放，保证连续不断音
+function flushPlayback() {
+  while (playQueue.length) {
+    const chunk = playQueue.shift();
+    const buf = audioCtx.createBuffer(1, chunk.length, audioCtx.sampleRate);
+    buf.copyToChannel(chunk, 0);
+    const src = audioCtx.createBufferSource();
+    src.buffer = buf;
+    src.connect(audioCtx.destination);
+    if (playAt < audioCtx.currentTime + 0.05) playAt = audioCtx.currentTime + 0.05;
+    src.start(playAt);
+    playAt += chunk.length / audioCtx.sampleRate;
+  }
+}
+
+function stopAll() {
+  playing = false;
+  if (workletNode) workletNode.port.onmessage = null;
+  if (audioCtx) audioCtx.close();
+  audioCtx = null;
+}
+
+$('start').onclick = start;
+$('stop').onclick = () => { if (ws) ws.close(); stopAll(); };
+</script>
+</body>
+</html>

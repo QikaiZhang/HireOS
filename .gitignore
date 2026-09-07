@@ -105,3 +105,10 @@ redis-data/
 sqlite*.db
 *.sqlite
 dump/
+
+# ===================== Python 缓存 =====================
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+media-gateway/bin/

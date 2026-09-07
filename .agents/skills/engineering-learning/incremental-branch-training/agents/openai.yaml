@@ -1,0 +1,7 @@
+interface:
+  display_name: "增量分支项目训练"
+  short_description: "Stage-based branch workflow for coding practice"
+  default_prompt: "Use $incremental-branch-training to run a staged, branch-driven coding project with design review before implementation."
+
+policy:
+  allow_implicit_invocation: true

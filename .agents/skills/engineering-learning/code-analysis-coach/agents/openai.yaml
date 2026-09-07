@@ -1,0 +1,4 @@
+interface:
+  display_name: "Code Analysis Coach"
+  short_description: "Read backend code step by step with a patient coach."
+  default_prompt: "Use $code-analysis-coach to guide me through the current backend code, starting with the most useful real path."

@@ -1,0 +1,61 @@
+syntax = "proto3";
+
+package media.v1;
+
+// 媒体网关对外契约 v1。
+//
+// 方向约定（重要）：backend 会话工作线程是 gRPC client，网关是 server。
+// - WorkerFrame（worker → 网关）：控制流、TTS 音频下行、字幕文本、结束会话
+// - GatewayFrame（网关 → worker）：浏览器上行音频、会话终止通知
+// 网关只中继字节，不理解媒体内容与面试语义。
+option go_package = "media-gateway/gen/mediav1;mediav1";
+
+service MediaRelay {
+  // 房间级双向流，与浏览器 WS 连接 1:1 绑定。
+  rpc SessionStream(stream WorkerFrame) returns (stream GatewayFrame);
+}
+
+// worker → 网关
+message WorkerFrame {
+  oneof payload {
+    StreamControl control = 1; // 会话控制（首帧必须是 start/resume）
+    AudioChunk tts_audio  = 2; // TTS 音频下行，推送给浏览器播放
+    AgentText text        = 3; // 字幕/转写文本
+    SessionEnded ended    = 4; // worker 主动结束会话
+  }
+}
+
+// 网关 → worker
+message GatewayFrame {
+  oneof payload {
+    AudioChunk audio  = 1; // 浏览器上行音频
+    SessionEnded ended = 2; // reason: browser_closed | idle_timeout | drain | error
+  }
+}
+
+message AudioChunk {
+  string room_id      = 1;
+  uint32 seq          = 2; // 会话内单调递增，重连续传依据
+  int64  timestamp_ms = 3; // 网关收到时间戳
+  string codec        = 4; // v1: pcm_s16le_16k_mono；视频预留 h264
+  bytes  data         = 5;
+  bool   final        = 6; // 句尾/会话尾标记
+}
+
+message StreamControl {
+  string room_id  = 1;
+  string event    = 2; // start | resume | stop
+  uint32 last_seq = 3; // resume 时 worker 已处理到的 seq
+  string token    = 4; // JWT 透传（M1 不校验，M2 接入）
+}
+
+message AgentText {
+  string room_id = 1;
+  string text    = 2;
+  string role    = 3; // interviewer | candidate | system
+}
+
+message SessionEnded {
+  string room_id = 1;
+  string reason  = 2; // normal | drain | browser_closed | idle_timeout | error
+}
