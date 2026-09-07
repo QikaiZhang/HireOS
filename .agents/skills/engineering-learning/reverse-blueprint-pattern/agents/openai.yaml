@@ -1,0 +1,7 @@
+interface:
+  display_name: "逆向施工图模式"
+  short_description: "按层逐步交付代码"
+  default_prompt: "Use $reverse-blueprint-pattern to implement this feature layer by layer, starting from the model/entity layer."
+
+policy:
+  allow_implicit_invocation: true

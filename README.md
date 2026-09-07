@@ -50,31 +50,22 @@ HireOS 不是一个聊天机器人。它是一个**有状态的面试 Agent 系�
 
 ```
 hireos
-├── agent-service/     # Python Agent（LangGraph 状态机）
-│   ├── app/
+├── Agent/             # Python Agent（LangGraph 状态机）✅ Phase 1
 │   ├── graph/         # 面试图定义
 │   ├── nodes/         # 面试节点（提问、评估、总结）
 │   ├── memory/        # 短期 + 长期记忆
-│   ├── prompt/        # Prompt 模板
-│   └── main.py        # FastAPI 入口
+│   ├── api/           # FastAPI 接口
+│   └── main.py        # 入口
 │
-├── backend/           # Go 业务层
-│   ├── api/           # HTTP API
-│   ├── service/       # 业务逻辑
-│   ├── grpc/          # gRPC Client
-│   ├── session/       # Session 管理
-│   └── repository/    # 数据访问
+├── media-gateway/     # Go 媒体网关（音视频流接入与中继）✅ M1
+│   ├── proto/         # media.proto（source of truth，make generate）
+│   ├── internal/      # relay 中继核心 / server WS / rpc / registry / metrics
+│   └── cmd/           # gateway 入口 / echoworker 回声 / wssmoke 验证
 │
-├── frontend/          # 前端页面
-│
-├── proto/             # Protobuf 定义
-│
+├── backend/           # Go 业务层（Week 2-4）
+├── frontend/          # 前端页面（Week 4）
 ├── docs/              # 文档
-│   ├── ARCHITECTURE.md
-│   ├── ROADMAP.md
-│   └── agent/
-│
-└── docker-compose.yml
+└── docker-compose.yml # Week 4
 ```
 
 ---
@@ -106,11 +97,50 @@ V2:  Browser → RTMP → Go → gRPC → Agent     ← Agent 不变
 
 ## 快速开始
 
-```bash
-# 启动全部服务
-docker-compose up -d
+### Agent Service（Phase 1 已可用）
 
-# 打开浏览器
+```bash
+cd Agent
+uv sync                          # 安装依赖
+uv run python main.py            # 启动 Agent（默认 :8000）
+
+# 配置真实 LLM（可选）：复制 .env.example 为 .env 并填写 LLM_API_KEY
+# 未配置 Key 时以 mock 模式运行，闭环可完整跑通
+```
+
+```bash
+# 创建面试 → 返回第一题
+curl -X POST localhost:8000/interview/start \
+  -H 'Content-Type: application/json' \
+  -d '{"room_id":"room-1","jd":"Go 后端","resume":"3 年 Go 经验"}'
+
+# 提交回答 → 返回追问或下一题；面试结束后返回报告
+curl -X POST localhost:8000/interview/chat \
+  -H 'Content-Type: application/json' \
+  -d '{"room_id":"room-1","message":"我叫张三，做 Go 后端…"}'
+
+# 查询报告
+curl localhost:8000/report/room-1
+```
+
+端到端验证：`cd Agent && uv run python scripts/verify_phase1_loop.py`
+
+### Media Gateway（M1 已可用）
+
+```bash
+cd media-gateway
+make generate    # proto → Go stub（需 protoc、protoc-gen-go、protoc-gen-go-grpc）
+make build
+./bin/gateway &                     # 网关：HTTP/WS :8080，gRPC :9090
+./bin/echoworker -room demo-1 &     # 回声 worker（M1 mock）
+open http://localhost:8080/echo     # 浏览器回声测试：说话 → 听到网关环回
+./bin/wssmoke -room demo-1          # 自动化冒烟：25fps 灌帧，逐帧校验
+```
+
+### 全栈（Month 1 后期）
+
+```bash
+docker-compose up -d
 open http://localhost:3000
 ```
 
@@ -121,3 +151,14 @@ open http://localhost:3000
 - [架构设计](docs/ARCHITECTURE.md) — 详细架构与设计决策
 - [路线图](docs/ROADMAP.md) — 分阶段开发计划
 - [Agent 设计](docs/agent/AGENT_DESIGN.md) — Python Agent 核心设计
+- [Agent API](docs/agent/API.md) — Agent HTTP 接口契约（Go Backend 对接依据）
+- [Phase 1 SPEC](docs/agent/PHASE1_SPEC.md) — Phase 1 闭环改造方案
+- [Phase 1 报告](docs/agent/PHASE1_REPORT.md) — Phase 1 交付、验证与遗留项
+- [媒体网关 SPEC](docs/gateway/GATEWAY_SPEC.md) — Go 实时音频网关设计（含性能收益评估）
+- [音视频流基础](docs/gateway/MEDIA_BASICS.md) — PCM/帧/丢帧策略/RTMP 入门讲解
+- [网关 M1 报告](docs/gateway/M1_REPORT.md) — 网关骨架交付与验证记录
+- [阶段进度总览](docs/design/STAGES.md) — 现在到哪了、各 Stage 完成标准、最短路径
+- [设计决策记录](docs/design/DESIGN_DECISIONS.md) — 10 条 ADR：选择、备选与代价
+- [技术深挖](docs/design/TECH_DEEP_DIVE.md) — 水位丢帧实现、排障复盘、踩坑记录
+- [阶段复盘](docs/design/PHASE_REVIEW.md) — 本阶段做了什么、设计理念、量化状态
+- [面试宣讲包](docs/interview/interview-package.md) — 宣讲话术、STAR-L、分层追问

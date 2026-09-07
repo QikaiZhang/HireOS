@@ -1,0 +1,4 @@
+interface:
+  display_name: "Real-World Coding Workflow"
+  short_description: "Safe, minimal-change workflow for real codebases"
+  default_prompt: "Use $real-world-coding-workflow to implement this change in the existing repository."

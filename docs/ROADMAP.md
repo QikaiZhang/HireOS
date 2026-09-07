@@ -5,7 +5,7 @@
 | 阶段 | 主题 | 核心交付 |
 |------|------|----------|
 | Month 1 | MVP — Python Agent 为核心 | 可语音面试的完整产品 |
-| Month 2 | 流媒体增强 | RTMP 网关替换 WebSocket |
+| Month 2 | 流媒体增强（💤 可选） | RTMP 网关替换 WebSocket / 录制 / 加固 |
 | Month 3 | 工程化 | 稳定性、可扩展性、面试准备 |
 
 ---
@@ -14,7 +14,7 @@
 
 > **目标**：证明 AI 面试这个产品成立。月底能演示：打开网页 → AI 问问题 → 我回答 → AI 追问 → 生成面试报告。
 
-### Week 1：Python Agent 核心
+### Week 1：Python Agent 核心 ✅（2026-09-07 完成，见 [Phase 1 报告](agent/PHASE1_REPORT.md)）
 
 **专注**：先把 Agent 大脑做出来，不要急着接语音。
 
@@ -42,7 +42,10 @@
 
 **Go 学习**（每天 30-60 分钟）：gRPC、protobuf、context、goroutine
 
-### Week 3：接入语音链路
+### Week 3：接入语音链路（设计见 [媒体网关 SPEC](gateway/GATEWAY_SPEC.md)）
+
+> 进度：**网关 M1 已完成（2026-09-08）** — WS 接入、gRPC 中继、水位丢帧、回声链路验证通过，
+> 见 [M1 报告](gateway/M1_REPORT.md)。剩余：Redis 注册/续传/drain（M2）、压测验收（M3）、真实 ASR/TTS 接入。
 
 **目标**：真人说话 → 文字 → AI 回答。
 
@@ -82,7 +85,9 @@ hireos
 
 ## Month 2：流媒体增强
 
-> **目标**：WebSocket 音频传输升级为 RTMP 网关，Agent 完全不用改。
+> **2026-09 更新：RTMP 已降级为可选项（💤）。** 评估结论：AI 语音面试产品闭环不需要 RTMP——高并发承载由网关提供、LLM 阻塞隔离由水位丢帧提供；录制走网关流复制即可。架构上变化隔离已就位（网关只搬字节、codec 为字符串标签），未来需要时只动网关入口层。详见 [Stage 总览](design/STAGES.md)。
+
+> **目标**：WebSocket 音频传输升级为 RTMP 网关，Agent 完全不用改。（可选演进）
 
 ### Week 5：RTMP 基础
 

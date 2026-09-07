@@ -1,0 +1,4 @@
+interface:
+  display_name: "Enterprise Project Enhancement"
+  short_description: "Generate a verified enterprise-grade project enhancement documentation repository"
+  default_prompt: "Use $enterprise-project-enhancement to analyze this existing project and generate a phased enterprise enhancement documentation repository."
