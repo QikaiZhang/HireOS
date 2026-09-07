@@ -2,8 +2,15 @@
 name = "agent"
 version = "0.1.0"
 requires-python = ">=3.11,<3.13"
-dependencies = []
+dependencies = [
+    "langgraph>=0.2.0",
+    "fastapi>=0.115.0",
+    "uvicorn>=0.30.0",
+    "openai>=1.50.0",
+    "python-dotenv>=1.0.0",
+    "httpx>=0.27.0",
+]
 
-[build-system]
-requires = ["uv>=0.5"]
-build-backend = "uv.build"
+# 纯应用项目，不构建/安装自身，只做依赖管理
+[tool.uv]
+package = false
